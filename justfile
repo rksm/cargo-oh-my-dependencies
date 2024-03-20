@@ -8,3 +8,9 @@ default:
 
 run:
     cargo run
+
+open-log-dir:
+    emacsclient -n /home/robert/.local/share/oh-my-dependencies
+
+open-log:
+    emacsclient -n /home/robert/.local/share/oh-my-dependencies/oh-my-dependencies.log

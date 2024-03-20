@@ -1,19 +1,20 @@
 [package]
-name = "all-my-crates"
+name = "cargo-oh-my-dependencies"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 cargo_metadata = "0.18.1"
 clap = { version = "4.5.3", features = ["derive"] }
 color-eyre = "0.6.3"
 crossterm = "0.27.0"
-env_logger = "0.11.3"
+directories = "5.0.1"
 eyre = "0.6.12"
-log = "0.4.21"
+lazy_static = "1.4.0"
 ratatui = "0.26.1"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
+simple-file-rotation = "0.3.4"
 tracing = "0.1.40"
+tracing-error = "0.2.0"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
