@@ -24,6 +24,7 @@
 
             packages = with pkgs; [
               rust-analyzer
+              python3
             ];
 
             RUST_BACKTRACE = "1";
