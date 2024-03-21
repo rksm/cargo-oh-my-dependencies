@@ -7,6 +7,7 @@ pub type Tui = Terminal<CrosstermBackend<Stdout>>;
 
 /// Initialize the terminal
 pub fn init() -> io::Result<Tui> {
+    info!("initializing tui");
     execute!(stdout(), EnterAlternateScreen)?;
     enable_raw_mode()?;
     Terminal::new(CrosstermBackend::new(stdout()))
@@ -14,6 +15,7 @@ pub fn init() -> io::Result<Tui> {
 
 /// Restore the terminal to its original state
 pub fn restore() -> io::Result<()> {
+    info!("restoring tui");
     execute!(stdout(), LeaveAlternateScreen)?;
     disable_raw_mode()?;
     Ok(())
