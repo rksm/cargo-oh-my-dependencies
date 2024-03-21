@@ -6,8 +6,8 @@ export RUST_LOG := "debug"
 default:
     just --list
 
-run:
-    cargo run
+run *args="":
+    cargo run -- {{ args }}
 
 ex-metadata:
     cargo run --example metadata

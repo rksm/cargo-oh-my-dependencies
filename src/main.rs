@@ -1,4 +1,4 @@
-use cargo_oh_my_dependencies::{initialize_logging, run_loop, tui};
+use cargo_oh_my_dependencies::{initialize_logging, run_loop, tui, Args};
 
 fn main() {
     color_eyre::install().expect("color_eyre");
@@ -11,16 +11,13 @@ fn main() {
 }
 
 fn run() -> eyre::Result<()> {
-    // Need to use catch_unwind here to always restore the terminal
-    let result = std::panic::catch_unwind(|| {
-        let mut terminal = tui::init()?;
-        run_loop(&mut terminal)
-    });
+    std::panic::set_hook(Box::new(|info| {
+        tui::restore();
+        eprintln!("{info}");
+    }));
 
-    tui::restore()?;
-
-    result.map_err(|err| {
-        let err = err.downcast_ref::<&str>().unwrap_or(&"unknown error");
-        eyre::eyre!("panic: {err}")
-    })?
+    let args = <Args as clap::Parser>::parse();
+    let mut terminal = tui::Tui::new()?;
+    run_loop(args, &mut terminal)?;
+    Ok(())
 }
