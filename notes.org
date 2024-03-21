@@ -1,0 +1,12 @@
+* tasks
+** TODO display feature deps as nodes
+:LOGBOOK:
+CLOCK: [2024-03-22 Fri 00:40]
+:END:
+** TODO display deps as nodes
+** TODO toggle features on / off
+** TODO add dep
+*** TODO dep search
+** TODO remove dep
+** TODO box packing layout - dep size by no of deps
+** TODO box packing layout - dep size by llvm-lines

@@ -17,6 +17,7 @@ use crate::{component::Component, metadata::PackageResolver};
 #[derive(Debug)]
 pub struct Icons {
     pub enabled: String,
+    pub indirectly_enabled: String,
     pub disabled: String,
     pub unknown: String,
 }
@@ -24,8 +25,11 @@ pub struct Icons {
 lazy_static::lazy_static! {
     pub static ref ICONS: Icons =
         Icons {
-            enabled: "󰄴".to_string(),
-            disabled: "󰝦".to_string(),
+            // enabled: "󰄴".to_string(),
+            enabled: "✓".to_string(),
+            indirectly_enabled: "—".to_string(),
+            // disabled: "󰝦".to_string(),
+            disabled: " ".to_string(),
             unknown: "?".to_string(),
         };
 }
@@ -46,16 +50,6 @@ impl App {
         let metadata = cargo_metadata::MetadataCommand::new()
             .manifest_path(&config_toml)
             .exec()?;
-
-        // let Some(target_package) = metadata
-        //     .workspace_default_packages()
-        //     .first()
-        //     .cloned()
-        //     .cloned()
-        //     .or_else(|| metadata.root_package().cloned())
-        // else {
-        //     eyre::bail!("No target package found at {config_toml:?}");
-        // };
 
         Ok(Self {
             metadata,
@@ -97,7 +91,7 @@ impl App {
                         ));
                     } else if indirectly_active_features.contains(feature) {
                         spans.push(Span::styled(
-                            format!("{} {feature}", ICONS.disabled),
+                            format!("{} {feature}", ICONS.indirectly_enabled),
                             Style::default().green(),
                         ));
                     } else {
@@ -152,6 +146,7 @@ impl Component for App {
             }
             event::KeyCode::Right => {
                 self.tree_state.key_right();
+                // self.tree_state.selected()
                 Ok(Some(Action::Render))
             }
             event::KeyCode::Left => {
@@ -177,7 +172,6 @@ impl Component for App {
         let tree = Tree::new(items)
             .expect("tree failed")
             .highlight_style(Style::default().on_dark_gray())
-            // .highlight_symbol("👉")
             .block(block);
         f.render_stateful_widget(tree, rect, &mut self.tree_state);
     }

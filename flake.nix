@@ -8,29 +8,29 @@
     flake-utils.lib.eachDefaultSystem (system:
       let pkgs = import nixpkgs { inherit system; };
       in
-        {
-          devShells.default = pkgs.mkShell {
-            nativeBuildInputs = with pkgs; [
-              pkgs.rustc
-              pkgs.cargo
-              pkgs.clippy
-              clang
-              pkg-config
-            ];
+      {
+        devShells.default = pkgs.mkShell {
+          nativeBuildInputs = with pkgs; [
+            pkgs.rustc
+            pkgs.cargo
+            pkgs.clippy
+            clang
+            pkg-config
+          ];
 
-            buildInputs = with pkgs; [
-              openssl
-            ];
+          buildInputs = with pkgs; [
+            openssl
+          ] ++ (if pkgs.stdenv.isDarwin then [ libiconv ] else [ ]);
 
-            packages = with pkgs; [
-              rust-analyzer
-              python3
-            ];
+          packages = with pkgs; [
+            rust-analyzer
+            python3
+          ];
 
-            RUST_BACKTRACE = "1";
-            RUST_LOG = "debug";
-            LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
-          };
-        }
+          RUST_BACKTRACE = "1";
+          RUST_LOG = "debug";
+          LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+        };
+      }
     );
 }
