@@ -9,6 +9,9 @@ default:
 run:
     cargo run
 
+ex-metadata:
+    cargo run --example metadata
+
 open-log-dir:
     emacsclient -n /home/robert/.local/share/oh-my-dependencies
 

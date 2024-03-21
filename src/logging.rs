@@ -14,7 +14,7 @@ lazy_static! {
         .ok()
         .map(PathBuf::from);
     pub static ref LOG_ENV: String = format!("{}_LOGLEVEL", &*PROJECT_NAME);
-    pub static ref LOG_FILE: String = format!("{}.log", env!("CARGO_BIN_NAME"));
+    pub static ref LOG_FILE: String = format!("{}.log", env!("CARGO_CRATE_NAME"));
 }
 
 fn project_directory() -> Option<ProjectDirs> {

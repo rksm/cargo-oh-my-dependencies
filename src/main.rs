@@ -1,11 +1,7 @@
 #[macro_use]
 extern crate tracing;
 
-mod app;
-mod logging;
-mod tui;
-
-// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+use cargo_oh_my_dependencies::{app, logging, tui};
 
 fn main() {
     color_eyre::install().expect("color_eyre");

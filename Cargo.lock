@@ -135,6 +135,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo-oh-my-dependencies"
+version = "0.1.0"
+dependencies = [
+ "cargo_metadata",
+ "clap",
+ "color-eyre",
+ "crossterm",
+ "directories",
+ "eyre",
+ "lazy_static",
+ "ratatui",
+ "serde",
+ "serde_json",
+ "simple-file-rotation",
+ "tracing",
+ "tracing-error",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "cargo-platform"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -499,26 +519,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6a622008b6e321afc04970976f62ee297fdbaa6f95318ca343e3eebb9648441"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "oh-my-dependencies"
-version = "0.1.0"
-dependencies = [
- "cargo_metadata",
- "clap",
- "color-eyre",
- "crossterm",
- "directories",
- "eyre",
- "lazy_static",
- "ratatui",
- "serde",
- "serde_json",
- "simple-file-rotation",
- "tracing",
- "tracing-error",
- "tracing-subscriber",
 ]
 
 [[package]]
