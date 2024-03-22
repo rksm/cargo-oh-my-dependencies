@@ -5,6 +5,7 @@ use ratatui::prelude::*;
 use std::collections::HashMap;
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
+use crate::metadata::workspace_info::WorkspaceInfo;
 use crate::{action::Action, metadata::Features};
 use crate::{component::Component, metadata::PackageResolver};
 
@@ -19,10 +20,8 @@ pub struct Icons {
 lazy_static::lazy_static! {
     pub static ref ICONS: Icons =
         Icons {
-            // enabled: "󰄴".to_string(),
             enabled: "✓".to_string(),
             indirectly_enabled: "—".to_string(),
-            // disabled: "󰝦".to_string(),
             disabled: " ".to_string(),
             unknown: "?".to_string(),
         };
@@ -44,13 +43,12 @@ pub enum Location {
 
 impl Location {
     pub fn id(&self) -> String {
-        match self {
-            Location::Package(id) => id.to_string().replace("path+file://", ""),
-            Location::Dependency((id, name)) => id.to_string().replace("path+file://", ""),
-            Location::Feature((id, name, feature_name)) => {
-                id.to_string().replace("path+file://", "")
-            }
-        }
+        let id = match self {
+            Location::Package(id) => id,
+            Location::Dependency((id, _)) => id,
+            Location::Feature((id, _, _)) => id,
+        };
+        id.to_string().replace("path+file://", "")
     }
 
     pub fn breadcrumbs(&self) -> Vec<Span<'static>> {
@@ -128,14 +126,14 @@ pub struct DependencyTree {
 }
 
 impl DependencyTree {
-    pub fn new(d: &cargo_metadata::Metadata) -> Result<Self> {
+    pub fn new(d: &WorkspaceInfo) -> Result<Self> {
         let mut me = Self::default();
         me.update(d);
         Ok(me)
     }
 
-    pub fn update(&mut self, d: &cargo_metadata::Metadata) {
-        let (items, indexed_items) = Self::tree_items(d);
+    pub fn update(&mut self, info: &WorkspaceInfo) {
+        let (items, indexed_items) = Self::tree_items(info);
         self.items = items;
         self.indexed_items = indexed_items;
     }
@@ -165,13 +163,13 @@ impl DependencyTree {
     }
 
     fn tree_items(
-        metadata: &cargo_metadata::Metadata,
+        workspace_info: &WorkspaceInfo,
     ) -> (Vec<TreeItem<'static, String>>, HashMap<String, Item>) {
-        let resolver = PackageResolver::new(metadata);
+        let resolver = workspace_info.package_resolver();
         let mut package_items = Vec::new();
         let mut indexed_items = HashMap::new();
 
-        for p in &metadata.workspace_packages() {
+        for p in &workspace_info.workspace_packages() {
             let mut dep_items = Vec::new();
 
             for (i, dep) in p.dependencies.iter().enumerate() {

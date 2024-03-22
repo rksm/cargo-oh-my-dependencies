@@ -19,14 +19,7 @@ pub struct App {
 
 impl App {
     pub fn new(args: Args) -> Result<Self> {
-        let mut config_toml = args.config_toml.unwrap_or_else(|| "Cargo.toml".into());
-        if config_toml.is_dir() {
-            config_toml.push("Cargo.toml");
-        }
-        if !config_toml.exists() {
-            eyre::bail!("{config_toml:?} not found");
-        }
-
+        let config_toml = args.config_toml.unwrap_or_else(|| "Cargo.toml".into());
         Ok(Self {
             tab: DependencyTab::new(config_toml)?,
             error: None,

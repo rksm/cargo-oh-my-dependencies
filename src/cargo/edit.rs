@@ -152,6 +152,8 @@ impl<'a> EditDependency<'a> {
     }
 
     pub fn apply(self) -> Result<()> {
+        debug!("{:#?}", self.package);
+
         let dir = self
             .package
             .manifest_path

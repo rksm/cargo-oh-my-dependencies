@@ -10,8 +10,8 @@ use ratatui::{
     },
 };
 
-use crate::action::Action;
 use crate::component::Component;
+use crate::{action::Action, metadata::workspace_info::WorkspaceInfo};
 
 use super::dependency_tree::DependencyTree;
 use crate::cargo;
@@ -25,20 +25,17 @@ enum View {
 #[derive(Debug)]
 pub struct DependencyTab {
     view: View,
-    config_toml: PathBuf,
-    metadata: cargo_metadata::Metadata,
+    workspace_info: WorkspaceInfo,
     dependency_tree: DependencyTree,
 }
 
 impl DependencyTab {
     pub fn new(config_toml: impl Into<PathBuf>) -> Result<Self> {
-        let config_toml = config_toml.into();
-        let metadata = Self::read_metadata(&config_toml)?;
-        let dependency_tree = DependencyTree::new(&metadata)?;
+        let workspace_info = WorkspaceInfo::load(config_toml)?;
+        let dependency_tree = DependencyTree::new(&workspace_info)?;
 
         Ok(Self {
-            config_toml,
-            metadata,
+            workspace_info,
             dependency_tree,
             view: Default::default(),
             // view: View::FeatureGraph {
@@ -49,15 +46,9 @@ impl DependencyTab {
     }
 
     fn update(&mut self) -> Result<()> {
-        self.metadata = Self::read_metadata(&self.config_toml)?;
-        self.dependency_tree.update(&self.metadata);
+        self.workspace_info.update()?;
+        self.dependency_tree.update(&self.workspace_info);
         Ok(())
-    }
-
-    fn read_metadata(config_toml: &std::path::Path) -> Result<cargo_metadata::Metadata> {
-        Ok(cargo_metadata::MetadataCommand::new()
-            .manifest_path(config_toml)
-            .exec()?)
     }
 
     fn refresh(&mut self) -> Result<Option<Action>> {
@@ -71,9 +62,13 @@ impl DependencyTab {
                 parent_package,
                 dep_name,
             })) => {
-                crate::mermaid::FeatureGraph::new(&self.metadata, &parent_package, &dep_name)
-                    .build()
-                    .render_and_open()?;
+                crate::mermaid::FeatureGraph::new(
+                    &self.workspace_info.metadata,
+                    &parent_package,
+                    &dep_name,
+                )
+                .build()
+                .render_and_open()?;
                 Action::none()
             }
 
@@ -82,19 +77,8 @@ impl DependencyTab {
                 dep_name,
                 feature_name,
             })) => {
-                let Some(package) = self
-                    .metadata
-                    .packages
-                    .iter()
-                    .find(|p| p.id == parent_package)
-                else {
-                    eyre::bail!("Package not found");
-                };
-
-                cargo::EditDependency::new(package, &dep_name)
-                    .toggle_feature(&feature_name)
-                    .apply()?;
-
+                self.workspace_info
+                    .toggle_feature(&parent_package, &dep_name, &feature_name)?;
                 self.refresh()
             }
             action => action,

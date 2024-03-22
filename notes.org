@@ -9,14 +9,18 @@ CLOCK: [2024-03-22 Fri 00:40]--[2024-03-22 Fri 01:28] =>  0:48
 CLOCK: [2024-03-22 Fr 17:13]--[2024-03-22 Fr 17:19] =>  0:06
 :END:
 ** TODO display deps as nodes
-** DONE toggle features on / off
+** TODO toggle features on / off
 CLOSED: [2024-03-22 Fr 19:20]
 :LOGBOOK:
 CLOCK: [2024-03-22 Fr 17:19]--[2024-03-22 Fr 19:20] =>  2:01
 :END:
+*** TODO handle workspace deps
+:LOGBOOK:
+CLOCK: [2024-03-22 Fr 21:37]--[2024-03-22 Fr 22:12] =>  0:35
+:END:
 ** TODO show breadcrumb
 :LOGBOOK:
-CLOCK: [2024-03-22 Fr 19:20]
+CLOCK: [2024-03-22 Fr 19:20]--[2024-03-22 Fr 20:34] =>  1:14
 :END:
 ** TODO add dep
 *** TODO dep search
