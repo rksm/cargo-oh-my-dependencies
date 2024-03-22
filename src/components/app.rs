@@ -1,5 +1,5 @@
 use ansi_to_tui::IntoText;
-use crossterm::event;
+use crossterm::event::{self, Event};
 use eyre::Result;
 use ratatui::{
     prelude::*,
@@ -63,6 +63,10 @@ impl App {
 }
 
 impl Component for App {
+    fn handle_events(&mut self, event: Event) -> Result<Option<Action>> {
+        self.tab.handle_events(event)
+    }
+
     fn handle_key_events(&mut self, key_event: event::KeyEvent) -> Result<Option<Action>> {
         match key_event.code {
             event::KeyCode::Char('q') => return Action::quit(),

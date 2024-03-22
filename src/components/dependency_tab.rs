@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crossterm::event;
+use crossterm::event::{self, Event};
 use eyre::Result;
 use ratatui::{
     prelude::*,
@@ -103,6 +103,15 @@ impl DependencyTab {
 }
 
 impl Component for DependencyTab {
+    fn handle_events(&mut self, event: Event) -> Result<Option<Action>> {
+        match event {
+            Event::Key(key_event) => self.handle_key_events(key_event),
+            Event::Mouse(mouse_event) => self.handle_mouse_events(mouse_event),
+            Event::Resize(..) => Action::render(),
+            _ => Ok(None),
+        }
+    }
+
     fn handle_key_events(&mut self, key_event: event::KeyEvent) -> Result<Option<Action>> {
         match key_event.code {
             event::KeyCode::Char('q') => return Action::quit(),
@@ -120,8 +129,17 @@ impl Component for DependencyTab {
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
+        let location = self.dependency_tree.location();
+
+        let breadcrumbs = location
+            .as_ref()
+            .map(|l| l.breadcrumbs())
+            .unwrap_or_default();
+        let help = location.as_ref().map(|l| l.help()).unwrap_or_default();
+
         let block = Block::default()
-            .title(Title::from(" Tree ").position(Position::Top))
+            .title(Title::from(breadcrumbs).position(Position::Top))
+            .title_bottom(help)
             .borders(Borders::all())
             .border_style(Style::default())
             .border_type(BorderType::Rounded)

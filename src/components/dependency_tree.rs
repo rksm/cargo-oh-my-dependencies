@@ -35,6 +35,91 @@ enum Item {
     Feature(String),
 }
 
+#[derive(Debug, Clone)]
+pub enum Location {
+    Package(PackageId),
+    Dependency((PackageId, String)),
+    Feature((PackageId, String, String)),
+}
+
+impl Location {
+    pub fn id(&self) -> String {
+        match self {
+            Location::Package(id) => id.to_string().replace("path+file://", ""),
+            Location::Dependency((id, name)) => id.to_string().replace("path+file://", ""),
+            Location::Feature((id, name, feature_name)) => {
+                id.to_string().replace("path+file://", "")
+            }
+        }
+    }
+
+    pub fn breadcrumbs(&self) -> Vec<Span<'static>> {
+        match self {
+            Location::Package(_) => {
+                vec![
+                    Span::raw(" "),
+                    Span::styled(self.id(), Style::default().bold()),
+                    Span::raw(" "),
+                ]
+            }
+            Location::Dependency((_, name)) => {
+                vec![
+                    Span::raw(" "),
+                    Span::styled(self.id(), Style::default().bold()),
+                    Span::raw(" > "),
+                    Span::styled(name.clone(), Style::default().bold()),
+                    Span::raw(" "),
+                ]
+            }
+
+            Location::Feature((_, name, feature_name)) => {
+                vec![
+                    Span::raw(" "),
+                    Span::styled(self.id(), Style::default().bold()),
+                    Span::raw(" > "),
+                    Span::styled(name.clone(), Style::default().bold()),
+                    Span::raw(" > "),
+                    Span::styled(feature_name.clone(), Style::default().bold()),
+                    Span::raw(" "),
+                ]
+            }
+        }
+    }
+
+    pub fn help(&self) -> Vec<Span<'static>> {
+        let mut help = Vec::new();
+
+        help.push("r".blue());
+        help.push("efresh".dim());
+        help.push(" ".dim());
+        help.push("q".blue());
+        help.push("uit".dim());
+        help.push(" ".dim());
+
+        match self {
+            Location::Package(_) => {
+                help.insert(0, "raph ".dim());
+                help.insert(0, "g".blue());
+                help.insert(0, " ".dim());
+                help
+            }
+            Location::Dependency((_, _)) => {
+                help.insert(0, " ".dim());
+                help
+            }
+
+            Location::Feature((_, _, _)) => {
+                help.insert(0, " ".dim());
+                help.insert(0, "<enter>".blue());
+                help.insert(0, "toggle".dim());
+                help.insert(0, " ".dim());
+                help.insert(0, " ".dim());
+                help
+            }
+        }
+    }
+}
+
 #[derive(Default, Debug)]
 pub struct DependencyTree {
     tree_state: TreeState<String>,
@@ -53,6 +138,30 @@ impl DependencyTree {
         let (items, indexed_items) = Self::tree_items(d);
         self.items = items;
         self.indexed_items = indexed_items;
+    }
+
+    pub fn location(&self) -> Option<Location> {
+        let selected = self
+            .tree_state
+            .selected()
+            .into_iter()
+            .filter_map(|s| self.indexed_items.get(&s))
+            .collect::<Vec<_>>();
+
+        match &selected[..] {
+            [Item::WorkspacePackage(id)] => Some(Location::Package(id.clone())),
+            [Item::WorkspacePackage(id), Item::Dependency(name)] => {
+                Some(Location::Dependency((id.clone(), name.clone())))
+            }
+            [Item::WorkspacePackage(id), Item::Dependency(name), Item::Feature(feature_name)] => {
+                Some(Location::Feature((
+                    id.clone(),
+                    name.clone(),
+                    feature_name.clone(),
+                )))
+            }
+            _ => None,
+        }
     }
 
     fn tree_items(
