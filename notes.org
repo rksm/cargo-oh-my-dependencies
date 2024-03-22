@@ -6,10 +6,18 @@ CLOCK: [2024-03-22 Fri 00:40]--[2024-03-22 Fri 01:28] =>  0:48
 :END:
 *** testing in-terminal image rendering
 :LOGBOOK:
-CLOCK: [2024-03-22 Fr 17:13]
+CLOCK: [2024-03-22 Fr 17:13]--[2024-03-22 Fr 17:19] =>  0:06
 :END:
 ** TODO display deps as nodes
-** TODO toggle features on / off
+** DONE toggle features on / off
+CLOSED: [2024-03-22 Fr 19:20]
+:LOGBOOK:
+CLOCK: [2024-03-22 Fr 17:19]--[2024-03-22 Fr 19:20] =>  2:01
+:END:
+** TODO show breadcrumb
+:LOGBOOK:
+CLOCK: [2024-03-22 Fr 19:20]
+:END:
 ** TODO add dep
 *** TODO dep search
 ** TODO remove dep

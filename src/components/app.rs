@@ -1,29 +1,20 @@
+use ansi_to_tui::IntoText;
 use crossterm::event;
 use eyre::Result;
 use ratatui::{
     prelude::*,
-    widgets::{
-        block::{Position, Title},
-        Block, BorderType, Borders,
-    },
+    widgets::{block::Title, Block, BorderType, Borders, Paragraph},
 };
 
 use crate::component::Component;
 use crate::{action::Action, Args};
 
-use super::dependency_tree::DependencyTree;
-
-#[derive(Debug, Clone, Default)]
-enum View {
-    #[default]
-    DependencyTree,
-}
+use super::dependency_tab::DependencyTab;
 
 #[derive(Debug)]
 pub struct App {
-    view: View,
-    metadata: cargo_metadata::Metadata,
-    dependency_tree: DependencyTree,
+    tab: DependencyTab,
+    error: Option<eyre::Report>,
 }
 
 impl App {
@@ -36,68 +27,64 @@ impl App {
             eyre::bail!("{config_toml:?} not found");
         }
 
-        let metadata = cargo_metadata::MetadataCommand::new()
-            .manifest_path(&config_toml)
-            .exec()?;
-
-        let dependency_tree = DependencyTree::new(&metadata)?;
-
         Ok(Self {
-            view: Default::default(),
-            // view: View::FeatureGraph {
-            //     parent_package: PackageId{repr:"doppelgaenger-server 0.1.0 (path+file:///Users/robert/projects/biz/podwriter/backend/doppelgaenger-server)".to_string()},
-            //     dep_name:"async-openai".to_string(),
-            // },
-            metadata,
-            dependency_tree,
+            tab: DependencyTab::new(config_toml)?,
+            error: None,
         })
+    }
+
+    fn render_error(&self, f: &mut Frame, rect: Rect) {
+        let Some(err) = &self.error else {
+            return;
+        };
+
+        let [rect] = Layout::default()
+            .direction(Direction::Vertical)
+            .flex(layout::Flex::Center)
+            .constraints([Constraint::Max(25)])
+            .areas(rect);
+        let [rect] = Layout::default()
+            .direction(Direction::Horizontal)
+            .flex(layout::Flex::Center)
+            .constraints([Constraint::Max(100)])
+            .areas(rect);
+        let block = Block::default()
+            .title(Title::from("Error"))
+            .borders(Borders::ALL)
+            .border_type(BorderType::Double)
+            .border_style(Style::default().fg(Color::Red))
+            .title_alignment(Alignment::Center);
+        let text = format!("{:?}", err)
+            .into_text()
+            .unwrap_or_else(|_| Text::raw(err.to_string()));
+        let msg_box = Paragraph::new(text).block(block);
+        f.render_widget(msg_box, rect);
     }
 }
 
 impl Component for App {
     fn handle_key_events(&mut self, key_event: event::KeyEvent) -> Result<Option<Action>> {
         match key_event.code {
-            event::KeyCode::Char('q') => return Ok(Some(Action::Quit)),
-            event::KeyCode::Esc => {
-                self.view = View::DependencyTree;
-                return Ok(Some(Action::Render));
+            event::KeyCode::Char('q') => return Action::quit(),
+            event::KeyCode::Esc if self.error.is_some() => {
+                self.error = None;
+                return Action::render();
             }
+            _ if self.error.is_some() => return Action::none(),
             _ => {}
         };
 
-        let action = self.dependency_tree.handle_key_events(key_event);
-
-        if let Ok(Some(Action::ShowFeatureTree {
-            parent_package,
-            dep_name,
-        })) = action
-        {
-            crate::mermaid::FeatureGraph::new(&self.metadata, &parent_package, &dep_name)
-                .build()
-                .render_and_open()?;
-            return Ok(None);
+        match self.tab.handle_key_events(key_event) {
+            Err(err) => {
+                self.error = Some(err);
+                Action::render()
+            }
+            action => action,
         }
-
-        action
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        let block = Block::default()
-            .title(Title::from(" Tree ").position(Position::Top))
-            .borders(Borders::all())
-            .border_style(Style::default())
-            .border_type(BorderType::Rounded)
-            .title_alignment(Alignment::Center)
-            .style(Style::default());
-        block.render(rect, f.buffer_mut());
-
-        let [inner] = Layout::default()
-            .flex(layout::Flex::Center)
-            // .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(100)].as_ref())
-            .margin(1)
-            .areas(rect);
-
-        self.dependency_tree.render(f, inner);
+        self.tab.render(f, rect);
+        self.render_error(f, rect);
     }
 }

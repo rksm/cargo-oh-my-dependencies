@@ -10,6 +10,7 @@ pub struct PackageInfo<'a> {
 }
 
 impl<'a> PackageInfo<'a> {
+    #[allow(dead_code)]
     pub fn new(metadata: &'a cargo_metadata::Metadata) -> Self {
         Self { metadata }
     }

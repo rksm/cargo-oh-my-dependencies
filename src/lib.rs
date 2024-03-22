@@ -3,6 +3,7 @@ extern crate tracing;
 
 mod action;
 mod args;
+pub mod cargo;
 mod component;
 mod components;
 pub mod logging;

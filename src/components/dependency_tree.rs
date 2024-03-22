@@ -35,7 +35,7 @@ enum Item {
     Feature(String),
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct DependencyTree {
     tree_state: TreeState<String>,
     items: Vec<TreeItem<'static, String>>,
@@ -44,12 +44,15 @@ pub struct DependencyTree {
 
 impl DependencyTree {
     pub fn new(d: &cargo_metadata::Metadata) -> Result<Self> {
+        let mut me = Self::default();
+        me.update(d);
+        Ok(me)
+    }
+
+    pub fn update(&mut self, d: &cargo_metadata::Metadata) {
         let (items, indexed_items) = Self::tree_items(d);
-        Ok(Self {
-            tree_state: TreeState::default(),
-            items,
-            indexed_items,
-        })
+        self.items = items;
+        self.indexed_items = indexed_items;
     }
 
     fn tree_items(
@@ -164,6 +167,14 @@ impl Component for DependencyTree {
                         Ok(Some(Action::ShowFeatureTree {
                             parent_package: id.clone(),
                             dep_name: name.clone(),
+                        }))
+                    }
+
+                    [Item::WorkspacePackage(id), Item::Dependency(name), Item::Feature(feature_name)] => {
+                        Ok(Some(Action::ToggleFeature {
+                            parent_package: id.clone(),
+                            dep_name: name.clone(),
+                            feature_name: feature_name.clone(),
                         }))
                     }
 
