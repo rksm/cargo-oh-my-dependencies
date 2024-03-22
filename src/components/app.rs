@@ -14,16 +14,12 @@ use ratatui::{
 use crate::component::Component;
 use crate::{action::Action, Args};
 
-use super::{dependency_tree::DependencyTree, feature_graph::FeatureGraph};
+use super::dependency_tree::DependencyTree;
 
 #[derive(Debug, Clone, Default)]
 enum View {
     #[default]
     DependencyTree,
-    FeatureGraph {
-        parent_package: PackageId,
-        dep_name: String,
-    },
 }
 
 #[derive(Debug)]
@@ -79,12 +75,10 @@ impl Component for App {
             dep_name,
         })) = action
         {
-            crate::mermaid::test_graph()?;
-            self.view = View::FeatureGraph {
-                parent_package,
-                dep_name,
-            };
-            return Ok(Some(Action::Render));
+            crate::mermaid::FeatureGraph::new(&self.metadata, &parent_package, &dep_name)
+                .build()
+                .render_and_open()?;
+            return Ok(None);
         }
 
         action
@@ -107,20 +101,6 @@ impl Component for App {
             .margin(1)
             .areas(rect);
 
-        match &self.view {
-            View::DependencyTree => self.dependency_tree.render(f, inner),
-            View::FeatureGraph {
-                parent_package,
-                dep_name,
-            } => {
-                info!(
-                    "rendering feature graph for {} in {}",
-                    dep_name, parent_package
-                );
-                let mut g =
-                    FeatureGraph::new(&self.metadata, parent_package.clone(), dep_name.clone());
-                g.render(f, inner)
-            }
-        }
+        self.dependency_tree.render(f, inner);
     }
 }
