@@ -1,8 +1,12 @@
 * tasks
 ** TODO display feature deps as nodes
 :LOGBOOK:
-CLOCK: [2024-03-22 Fri 02:22]
+CLOCK: [2024-03-22 Fri 02:22]--[2024-03-22 Fri 06:17] =>  3:55
 CLOCK: [2024-03-22 Fri 00:40]--[2024-03-22 Fri 01:28] =>  0:48
+:END:
+*** testing in-terminal image rendering
+:LOGBOOK:
+CLOCK: [2024-03-22 Fr 17:13]
 :END:
 ** TODO display deps as nodes
 ** TODO toggle features on / off

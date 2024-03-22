@@ -9,6 +9,10 @@ default:
 run *args="":
     cargo run -- {{ args }}
 
+dev *args="~/projects/biz/podwriter/Cargo.toml":
+    #!/usr/bin/env fish
+    while true; cargo run --release -- {{ args }}; sleep 1; end
+
 ex-metadata:
     cargo run --example metadata
 

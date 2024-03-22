@@ -1,10 +1,8 @@
 use cargo_metadata::PackageId;
-use eyre::Result;
-use std::collections::HashMap;
-
 use crossterm::event;
-
+use eyre::Result;
 use ratatui::prelude::*;
+use std::collections::HashMap;
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 use crate::{action::Action, metadata::Features};
@@ -97,7 +95,7 @@ impl DependencyTree {
                     } else {
                         spans.push(Span::styled(
                             format!("{} {feature}", ICONS.disabled),
-                            Style::default(),
+                            Style::default().white(),
                         ));
                     };
 
@@ -109,24 +107,22 @@ impl DependencyTree {
                     }
 
                     let text = Text::from(Line::from(spans));
-
                     let key = format!("{tree_key}:{feature}");
                     indexed_items.insert(key.clone(), Item::Feature(feature.clone()));
                     feature_items.push(TreeItem::new_leaf(key, text));
                 }
 
                 indexed_items.insert(tree_key.clone(), Item::Dependency(dep.name.clone()));
-                dep_items.push(
-                    TreeItem::new(tree_key, dep.name.clone(), feature_items).expect("tree failed"),
-                );
+                let span = Span::styled(dep.name.clone(), Style::default().white());
+                dep_items.push(TreeItem::new(tree_key, span, feature_items).expect("tree failed"));
 
                 // f.render_widget(Paragraph::new(p.name.as_str()), rect);
             }
 
             indexed_items.insert(p.id.to_string(), Item::WorkspacePackage(p.id.clone()));
-            package_items.push(
-                TreeItem::new(p.id.to_string(), p.name.clone(), dep_items).expect("tree failed"),
-            );
+            let span = Span::styled(p.name.clone(), Style::default().white().bold());
+            package_items
+                .push(TreeItem::new(p.id.to_string(), span, dep_items).expect("tree failed"));
         }
 
         (package_items, indexed_items)

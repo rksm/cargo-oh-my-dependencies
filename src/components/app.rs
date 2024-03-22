@@ -1,8 +1,5 @@
-use cargo_metadata::PackageId;
-use eyre::Result;
-
 use crossterm::event;
-
+use eyre::Result;
 use ratatui::{
     prelude::*,
     widgets::{
