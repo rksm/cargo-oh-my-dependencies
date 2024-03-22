@@ -6,6 +6,7 @@ mod args;
 mod component;
 mod components;
 pub mod logging;
+mod mermaid;
 pub mod metadata;
 pub mod run;
 pub mod tui;

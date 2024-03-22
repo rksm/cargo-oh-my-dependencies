@@ -4,6 +4,6 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 pub struct Args {
-    #[clap(long, short)]
+    #[clap()]
     pub config_toml: Option<PathBuf>,
 }

@@ -24,6 +24,7 @@
 
           packages = with pkgs; [
             rust-analyzer
+            rustfmt
             python3
           ];
 

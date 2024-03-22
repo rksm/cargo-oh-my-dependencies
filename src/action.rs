@@ -1,3 +1,4 @@
+use cargo_metadata::PackageId;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
@@ -8,4 +9,9 @@ pub enum Action {
     Quit,
     Error(String),
     Help,
+
+    ShowFeatureTree {
+        parent_package: PackageId,
+        dep_name: String,
+    },
 }
