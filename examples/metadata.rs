@@ -28,7 +28,7 @@ fn main() -> Result<()> {
 
         println!("{}", p.name);
         for dep in &p.dependencies {
-            let Some(dep_package) = resolver.resolve_package(id, &dep.name) else {
+            let Some(dep_package) = resolver.resolve_dependency(id, &dep.name) else {
                 warn!("Could not resolve package {}", dep.name);
                 println!("! {}", dep.name);
                 continue;

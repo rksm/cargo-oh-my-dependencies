@@ -28,7 +28,7 @@ impl<'a> FeatureGraph<'a> {
 
     pub fn build(&self) -> Graph {
         let resolver = PackageResolver::new(self.metadata);
-        let Some(dep_package) = resolver.resolve_package(self.package_id, self.dep_name) else {
+        let Some(dep_package) = resolver.resolve_dependency(self.package_id, self.dep_name) else {
             unimplemented!("Could not resolve package: {:?}", self.dep_name);
         };
 

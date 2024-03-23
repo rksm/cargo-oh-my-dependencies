@@ -5,6 +5,7 @@ use ratatui::prelude::*;
 use std::collections::HashMap;
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
+use crate::metadata::dep_tree::{self, DepTreeNode};
 use crate::metadata::workspace_info::WorkspaceInfo;
 use crate::{action::Action, metadata::Features};
 use crate::{component::Component, metadata::PackageResolver};
@@ -25,13 +26,6 @@ lazy_static::lazy_static! {
             disabled: " ".to_string(),
             unknown: "?".to_string(),
         };
-}
-
-#[derive(Debug, Clone)]
-enum Item {
-    WorkspacePackage(PackageId),
-    Dependency(String),
-    Feature(String),
 }
 
 #[derive(Debug, Clone)]
@@ -122,7 +116,9 @@ impl Location {
 pub struct DependencyTree {
     tree_state: TreeState<String>,
     items: Vec<TreeItem<'static, String>>,
-    indexed_items: HashMap<String, Item>,
+
+    tree: dep_tree::DepTree,
+    tree_index: HashMap<String, usize>,
 }
 
 impl DependencyTree {
@@ -135,107 +131,106 @@ impl DependencyTree {
     pub fn update(&mut self, info: &WorkspaceInfo) {
         let (items, indexed_items) = Self::tree_items(info);
         self.items = items;
-        self.indexed_items = indexed_items;
+        self.tree_index = indexed_items;
     }
 
     pub fn location(&self) -> Option<Location> {
+        use DepTreeNode::*;
+
         let selected = self
             .tree_state
             .selected()
             .into_iter()
-            .filter_map(|s| self.indexed_items.get(&s))
+            .filter_map(|s| {
+                self.tree_index
+                    .get(&s)
+                    .and_then(|i| self.tree.items.get(*i))
+            })
             .collect::<Vec<_>>();
 
         match &selected[..] {
-            [Item::WorkspacePackage(id)] => Some(Location::Package(id.clone())),
-            [Item::WorkspacePackage(id), Item::Dependency(name)] => {
+            [WorkspacePackage { id, .. }] => Some(Location::Package(id.clone())),
+            [WorkspacePackage { id, .. }, Dependency { name, kind, .. }] => {
                 Some(Location::Dependency((id.clone(), name.clone())))
             }
-            [Item::WorkspacePackage(id), Item::Dependency(name), Item::Feature(feature_name)] => {
-                Some(Location::Feature((
-                    id.clone(),
-                    name.clone(),
-                    feature_name.clone(),
-                )))
-            }
+            [WorkspacePackage { id, .. }, Dependency { name, kind, .. }, Feature {
+                name: feature_name, ..
+            }] => Some(Location::Feature((
+                id.clone(),
+                name.clone(),
+                feature_name.clone(),
+            ))),
             _ => None,
         }
     }
 
     fn tree_items(
         workspace_info: &WorkspaceInfo,
-    ) -> (Vec<TreeItem<'static, String>>, HashMap<String, Item>) {
-        let resolver = workspace_info.package_resolver();
-        let mut package_items = Vec::new();
-        let mut indexed_items = HashMap::new();
+    ) -> (Vec<TreeItem<'static, String>>, HashMap<String, usize>) {
+        let mut index = HashMap::new();
+        let tree = workspace_info.tree();
+        let items = tree.visit_post_order(&mut |node, i, children| {
+            use DepTreeNode::*;
 
-        for p in &workspace_info.workspace_packages() {
-            let mut dep_items = Vec::new();
+            match (node, children) {
+                (WorkspacePackage { id, .. }, Some(children)) => {
+                    let key = node.widget_id();
+                    index.insert(key.clone(), i);
+                    let workspace_packages = &workspace_info.workspace_packages();
+                    let p = workspace_packages.iter().find(|&&p| &p.id == id).unwrap();
+                    let span = Span::styled(p.name.clone(), Style::default().white().bold());
+                    TreeItem::new(id.to_string(), span, children).expect("tree failed")
+                }
 
-            for (i, dep) in p.dependencies.iter().enumerate() {
-                let tree_key = format!("{i}:{}:{}", p.id, dep.name);
+                (UnresolvedDependency { name, kind }, None) => {
+                    let key = node.widget_id();
+                    index.insert(key.clone(), i);
+                    let icon = &ICONS.unknown;
+                    TreeItem::new_leaf(key, format!("{icon} {name} ({kind})"))
+                }
 
-                let Some(dep_package) = resolver.resolve_package(&p.id, &dep.name) else {
-                    warn!("Could not resolve package {}", dep.name);
-                    indexed_items.insert(tree_key.clone(), Item::Dependency(dep.name.clone()));
-                    dep_items.push(TreeItem::new_leaf(
-                        tree_key,
-                        format!("{} {}", ICONS.unknown, dep.name),
-                    ));
-                    continue;
-                };
+                (Dependency { name, kind, .. }, Some(children)) => {
+                    let key = node.widget_id();
+                    index.insert(key.clone(), i);
+                    let span = Span::styled(format!("{name} ({kind})"), Style::default().white());
+                    TreeItem::new(key, span, children).expect("tree failed")
+                }
 
-                let features = Features::new(dep, dep_package);
-                let active_features = features.active_features();
-                let indirectly_active_features = features.indirectly_active_features();
+                (Feature { name, status, deps }, None) => {
+                    use dep_tree::FeatureStatus::*;
 
-                let mut feature_items = Vec::new();
-                for (feature, feature_deps) in dep_package.features.iter() {
                     let mut spans = Vec::new();
-                    if active_features.contains(feature) {
-                        spans.push(Span::styled(
-                            format!("{} {feature}", ICONS.enabled),
+
+                    match status {
+                        Enabled => spans.push(Span::styled(
+                            format!("{} {name}", ICONS.enabled),
                             Style::default().green().bold(),
-                        ));
-                    } else if indirectly_active_features.contains(feature) {
-                        spans.push(Span::styled(
-                            format!("{} {feature}", ICONS.indirectly_enabled),
+                        )),
+                        IndirectlyEnabled => spans.push(Span::styled(
+                            format!("{} {name}", ICONS.indirectly_enabled),
                             Style::default().green(),
-                        ));
-                    } else {
-                        spans.push(Span::styled(
-                            format!("{} {feature}", ICONS.disabled),
+                        )),
+                        Disabled => spans.push(Span::styled(
+                            format!("{} {name}", ICONS.disabled),
                             Style::default().white(),
-                        ));
-                    };
+                        )),
+                    }
 
-                    // let mut item = Vec::new();
-
-                    if !feature_deps.is_empty() {
-                        // write!(item, " ({})", feature_deps.join(", ")).expect("write failed");
-                        spans.push(Span::raw(format!(" ({})", feature_deps.join(", "))));
+                    if !deps.is_empty() {
+                        spans.push(Span::raw(format!(" ({})", deps.join(", "))));
                     }
 
                     let text = Text::from(Line::from(spans));
-                    let key = format!("{tree_key}:{feature}");
-                    indexed_items.insert(key.clone(), Item::Feature(feature.clone()));
-                    feature_items.push(TreeItem::new_leaf(key, text));
+                    let key = node.widget_id();
+                    index.insert(key.clone(), i);
+                    TreeItem::new_leaf(key, text)
                 }
 
-                indexed_items.insert(tree_key.clone(), Item::Dependency(dep.name.clone()));
-                let span = Span::styled(dep.name.clone(), Style::default().white());
-                dep_items.push(TreeItem::new(tree_key, span, feature_items).expect("tree failed"));
-
-                // f.render_widget(Paragraph::new(p.name.as_str()), rect);
+                _ => unreachable!(),
             }
+        });
 
-            indexed_items.insert(p.id.to_string(), Item::WorkspacePackage(p.id.clone()));
-            let span = Span::styled(p.name.clone(), Style::default().white().bold());
-            package_items
-                .push(TreeItem::new(p.id.to_string(), span, dep_items).expect("tree failed"));
-        }
-
-        (package_items, indexed_items)
+        (items, index)
     }
 }
 
@@ -262,28 +257,34 @@ impl Component for DependencyTree {
             }
 
             event::KeyCode::Enter => {
+                use DepTreeNode::*;
+
                 let selected = self
                     .tree_state
                     .selected()
                     .into_iter()
-                    .filter_map(|s| self.indexed_items.get(&s))
+                    .filter_map(|s| {
+                        self.tree_index
+                            .get(&s)
+                            .and_then(|i| self.tree.items.get(*i))
+                    })
                     .collect::<Vec<_>>();
 
                 match &selected[..] {
-                    [Item::WorkspacePackage(id), Item::Dependency(name)] => {
+                    [WorkspacePackage { id, .. }, Dependency { name, .. }] => {
                         Ok(Some(Action::ShowFeatureTree {
                             parent_package: id.clone(),
                             dep_name: name.clone(),
                         }))
                     }
 
-                    [Item::WorkspacePackage(id), Item::Dependency(name), Item::Feature(feature_name)] => {
-                        Ok(Some(Action::ToggleFeature {
-                            parent_package: id.clone(),
-                            dep_name: name.clone(),
-                            feature_name: feature_name.clone(),
-                        }))
-                    }
+                    [WorkspacePackage { id, .. }, Dependency { name, .. }, Feature {
+                        name: feature_name, ..
+                    }] => Ok(Some(Action::ToggleFeature {
+                        parent_package: id.clone(),
+                        dep_name: name.clone(),
+                        feature_name: feature_name.clone(),
+                    })),
 
                     _ => todo!(),
                 }

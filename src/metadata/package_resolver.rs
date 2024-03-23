@@ -26,7 +26,7 @@ impl<'a> PackageResolver<'a> {
         Self { resolved, packages }
     }
 
-    pub fn resolve_package(&self, dependent: &PackageId, package_name: &str) -> Option<&Package> {
+    pub fn resolve_dependency(&self, dependent: &PackageId, dep_name: &str) -> Option<&Package> {
         let Some(resolver) = self.resolved.get(dependent) else {
             return None;
         };
@@ -34,9 +34,9 @@ impl<'a> PackageResolver<'a> {
             .deps
             .iter()
             .find(|d| {
-                d.name == package_name
-                    || (package_name.contains('-') && d.name == package_name.replace('-', "_"))
-                    || (package_name.contains('_') && d.name == package_name.replace('_', "-"))
+                d.name == dep_name
+                    || (dep_name.contains('-') && d.name == dep_name.replace('-', "_"))
+                    || (dep_name.contains('_') && d.name == dep_name.replace('_', "-"))
             })
             .and_then(|dep| self.packages.get(&dep.pkg))
             .copied()

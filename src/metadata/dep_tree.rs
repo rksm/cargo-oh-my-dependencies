@@ -1,78 +1,144 @@
-use std::collections::HashMap;
-
 use cargo_metadata::{Dependency, DependencyKind, PackageId};
 
 use super::{workspace_info::WorkspaceInfo, Features};
 
 #[derive(Default, Debug, Clone)]
 pub struct DepTree {
-    pub index: HashMap<String, usize>,
     pub items: Vec<DepTreeNode>,
+    pub children: Vec<usize>,
 }
 
 #[derive(Debug, Clone)]
-enum DepTreeNode {
+pub enum DepTreeNode {
     WorkspacePackage {
         id: PackageId,
+        children: Vec<usize>,
     },
 
     UnresolvedDependency {
-        id: String,
-        package_id: PackageId,
         name: String,
         kind: DependencyKind,
     },
 
     Dependency {
-        id: String,
-        package_id: PackageId,
         name: String,
         kind: DependencyKind,
+        children: Vec<usize>,
     },
 
     Feature {
-        id: String,
-        dependency_id: String,
         name: String,
         status: FeatureStatus,
-        dep_features: Vec<String>,
+        deps: Vec<String>,
     },
 }
 
 #[derive(Debug, Clone)]
-enum FeatureStatus {
+pub enum FeatureStatus {
     Enabled,
     IndirectlyEnabled,
     Disabled,
 }
 
 impl DepTreeNode {
-    pub fn resolved(
-        id: impl ToString,
-        package_id: PackageId,
-        name: impl ToString,
-        kind: DependencyKind,
-    ) -> Self {
+    fn package(id: PackageId) -> Self {
+        DepTreeNode::WorkspacePackage {
+            id,
+            children: Vec::new(),
+        }
+    }
+
+    fn resolved(name: impl ToString, kind: DependencyKind) -> Self {
         DepTreeNode::Dependency {
-            id: id.to_string(),
-            package_id,
+            name: name.to_string(),
+            kind,
+            children: Vec::new(),
+        }
+    }
+
+    fn unresolved(name: impl ToString, kind: DependencyKind) -> Self {
+        DepTreeNode::UnresolvedDependency {
             name: name.to_string(),
             kind,
         }
     }
 
-    pub fn unresolved(
-        id: impl ToString,
-        package_id: PackageId,
-        name: impl ToString,
-        kind: DependencyKind,
-    ) -> Self {
-        DepTreeNode::UnresolvedDependency {
-            id: id.to_string(),
-            package_id,
+    fn feature(name: impl ToString, status: FeatureStatus, deps: Vec<String>) -> Self {
+        DepTreeNode::Feature {
             name: name.to_string(),
-            kind,
+            status,
+            deps,
         }
+    }
+
+    fn children(&self) -> Option<&Vec<usize>> {
+        match self {
+            DepTreeNode::WorkspacePackage { children, .. } => Some(children),
+            DepTreeNode::Dependency { children, .. } => Some(children),
+            _ => None,
+        }
+    }
+
+    fn set_children(&mut self, children: Vec<usize>) {
+        match self {
+            DepTreeNode::WorkspacePackage {
+                children: ref mut c,
+                ..
+            } => *c = children,
+            DepTreeNode::Dependency {
+                children: ref mut c,
+                ..
+            } => *c = children,
+            _ => {}
+        }
+    }
+
+    pub fn widget_id(&self) -> String {
+        match self {
+            DepTreeNode::WorkspacePackage { id, .. } => id.to_string(),
+            DepTreeNode::UnresolvedDependency { name, kind, .. } => format!("{name}:{kind}"),
+            DepTreeNode::Dependency { name, kind, .. } => format!("{name}:{kind}"),
+            DepTreeNode::Feature { name, .. } => name.clone(),
+        }
+    }
+
+    pub fn visit(
+        &self,
+        parent: Option<&DepTreeNode>,
+        items: &[DepTreeNode],
+        visitor: &mut dyn FnMut(&DepTreeNode, Option<&DepTreeNode>),
+    ) {
+        visitor(self, parent);
+
+        if let Some(children) = self.children() {
+            for i in children {
+                let child = &items[*i];
+                child.visit(Some(self), items, visitor);
+            }
+        }
+    }
+
+    fn visit_post_order<T>(
+        &self,
+        i: usize,
+        items: &[DepTreeNode],
+        visitor: &mut dyn FnMut(&DepTreeNode, usize, Option<Vec<T>>) -> T,
+    ) -> T {
+        let input = if let Some(children) = self.children() {
+            Some(
+                children
+                    .iter()
+                    .map(|i| {
+                        let child = &items[*i];
+                        child.visit_post_order(*i, items, visitor)
+                    })
+                    .collect(),
+            )
+        } else {
+            None
+        };
+
+        visitor(self, i, input)
     }
 }
 
@@ -80,35 +146,26 @@ impl DepTree {
     pub fn build(workspace_info: &WorkspaceInfo) -> Self {
         let resolver = workspace_info.package_resolver();
         let mut items = Vec::new();
-        let mut index = HashMap::new();
+        let mut children = Vec::new();
 
         for p in &workspace_info.workspace_packages() {
-            let key = p.id.to_string();
-            index.insert(key.clone(), items.len());
-            items.push(DepTreeNode::WorkspacePackage { id: p.id.clone() });
+            let i = items.len();
+            children.push(items.len());
+
+            let mut children = Vec::new();
+            items.push(DepTreeNode::package(p.id.clone()));
 
             for dep in &p.dependencies {
-                let tree_key = format!("{}:{}:{}", p.id, dep.name, dep.kind);
-
-                index.insert(tree_key.clone(), items.len());
-                let Some(dep_package) = resolver.resolve_package(&p.id, &dep.name) else {
+                let i = items.len();
+                children.push(i);
+                let Some(dep_package) = resolver.resolve_dependency(&p.id, &dep.name) else {
                     warn!("Could not resolve package {}", dep.name);
-                    items.push(DepTreeNode::unresolved(
-                        tree_key.clone(),
-                        p.id.clone(),
-                        &dep.name,
-                        dep.kind,
-                    ));
+                    items.push(DepTreeNode::unresolved(&dep.name, dep.kind));
                     continue;
                 };
+                items.push(DepTreeNode::resolved(dep.name.clone(), dep.kind));
 
-                items.push(DepTreeNode::resolved(
-                    tree_key.clone(),
-                    p.id.clone(),
-                    dep.name.clone(),
-                    dep.kind,
-                ));
-
+                let mut children = Vec::new();
                 let features = Features::new(dep, dep_package);
                 let active_features = features.active_features();
                 let indirectly_active_features = features.indirectly_active_features();
@@ -122,25 +179,36 @@ impl DepTree {
                         FeatureStatus::Disabled
                     };
 
-                    let key = format!("{tree_key}:{feature}");
-                    index.insert(key.clone(), items.len());
-                    items.push(DepTreeNode::Feature {
-                        id: key,
-                        dependency_id: tree_key.clone(),
-                        name: feature.clone(),
-                        status,
-                        dep_features: feature_deps.clone(),
-                    });
+                    children.push(items.len());
+                    items.push(DepTreeNode::feature(feature, status, feature_deps.clone()));
                 }
+
+                items.get_mut(i).unwrap().set_children(children);
             }
+
+            items.get_mut(i).unwrap().set_children(children);
         }
 
-        DepTree { items, index }
+        DepTree { items, children }
     }
 
-    pub fn visit(&self, visitor: &mut dyn FnMut(&DepTreeNode)) {
-        for item in &self.items {
-            visitor(item);
+    pub fn visit(&self, visitor: &mut dyn FnMut(&DepTreeNode, Option<&DepTreeNode>)) {
+        for i in &self.children {
+            let item = &self.items[*i];
+            item.visit(None, &self.items, visitor);
         }
+    }
+
+    pub fn visit_post_order<T>(
+        &self,
+        visitor: &mut dyn FnMut(&DepTreeNode, usize, Option<Vec<T>>) -> T,
+    ) -> Vec<T> {
+        self.children
+            .iter()
+            .map(|i| {
+                let item = &self.items[*i];
+                item.visit_post_order(*i, &self.items, visitor)
+            })
+            .collect()
     }
 }

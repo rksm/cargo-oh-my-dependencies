@@ -5,7 +5,7 @@ use cargo_metadata::{Metadata, Package, PackageId};
 
 use crate::cargo;
 
-use super::{Features, PackageResolver};
+use super::{dep_tree::DepTree, PackageResolver};
 
 #[derive(Debug, Clone)]
 pub struct WorkspaceInfo {
@@ -67,5 +67,9 @@ impl WorkspaceInfo {
 
     pub fn package_resolver(&self) -> PackageResolver<'_> {
         PackageResolver::new(&self.metadata)
+    }
+
+    pub fn tree(&self) -> DepTree {
+        DepTree::build(self)
     }
 }

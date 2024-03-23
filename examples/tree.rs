@@ -1,20 +1,26 @@
-#[macro_use]
-extern crate tracing;
-
 use eyre::Result;
-use std::collections::{BTreeMap, HashSet};
 
-use cargo_oh_my_dependencies::metadata::{dep_tree, workspace_info::WorkspaceInfo};
+use cargo_oh_my_dependencies::metadata::workspace_info::WorkspaceInfo;
 
 fn main() -> Result<()> {
     color_eyre::install().expect("color_eyre init");
 
     let manifest_path = "/home/robert/temp/test-crate-workpspace/Cargo.toml";
     let info = WorkspaceInfo::load(manifest_path).expect("load workspace info");
+    let tree = info.tree();
 
-    let tree = dep_tree::DepTree::build(&info);
+    tree.visit(&mut |node, parent| {
+        println!("{:?}: {:?}", node, parent);
+    });
 
-    dbg!(tree);
+    tree.visit_post_order(&mut |node, i, bottom| {
+        if let Some(ids) = bottom {
+            println!("[{i}] {:?}: {:?}", node, ids);
+        } else {
+            println!("[{i}] {:?}: None", node);
+        }
+        node.widget_id()
+    });
 
     Ok(())
 }
