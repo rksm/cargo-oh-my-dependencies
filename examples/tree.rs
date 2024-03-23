@@ -5,7 +5,8 @@ use cargo_oh_my_dependencies::metadata::workspace_info::WorkspaceInfo;
 fn main() -> Result<()> {
     color_eyre::install().expect("color_eyre init");
 
-    let manifest_path = "/home/robert/temp/test-crate-workpspace/Cargo.toml";
+    // let manifest_path = "/home/robert/temp/test-crate-workpspace/Cargo.toml";
+    let manifest_path = "/home/robert/projects/biz/podwriter/Cargo.toml";
     let info = WorkspaceInfo::load(manifest_path).expect("load workspace info");
     let tree = info.tree();
 

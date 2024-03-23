@@ -1,4 +1,4 @@
-use cargo_metadata::{Dependency, DependencyKind, PackageId};
+use cargo_metadata::{DependencyKind, PackageId};
 
 use super::{workspace_info::WorkspaceInfo, Features};
 
@@ -39,6 +39,9 @@ pub enum FeatureStatus {
     IndirectlyEnabled,
     Disabled,
 }
+
+pub type PostOrderCallback<'a, 'b, T> =
+    dyn (FnMut(&'a DepTreeNode, usize, Option<Vec<T>>) -> T) + 'b;
 
 impl DepTreeNode {
     fn package(id: PackageId) -> Self {
@@ -118,25 +121,24 @@ impl DepTreeNode {
         }
     }
 
-    fn visit_post_order<T>(
-        &self,
+    fn visit_post_order<'a, 'b, 's, T>(
+        &'s self,
         i: usize,
-        items: &[DepTreeNode],
-        visitor: &mut dyn FnMut(&DepTreeNode, usize, Option<Vec<T>>) -> T,
-    ) -> T {
-        let input = if let Some(children) = self.children() {
-            Some(
-                children
-                    .iter()
-                    .map(|i| {
-                        let child = &items[*i];
-                        child.visit_post_order(*i, items, visitor)
-                    })
-                    .collect(),
-            )
-        } else {
-            None
-        };
+        items: &'a [DepTreeNode],
+        visitor: &mut PostOrderCallback<'a, 'b, T>,
+    ) -> T
+    where
+        's: 'a,
+    {
+        let input = self.children().map(|children| {
+            children
+                .iter()
+                .map(|i| {
+                    let child = &items[*i];
+                    child.visit_post_order(*i, items, visitor)
+                })
+                .collect()
+        });
 
         visitor(self, i, input)
     }
@@ -199,10 +201,13 @@ impl DepTree {
         }
     }
 
-    pub fn visit_post_order<T>(
-        &self,
-        visitor: &mut dyn FnMut(&DepTreeNode, usize, Option<Vec<T>>) -> T,
-    ) -> Vec<T> {
+    pub fn visit_post_order<'s, 'a, 'b, T>(
+        &'s self,
+        visitor: &mut PostOrderCallback<'a, 'b, T>,
+    ) -> Vec<T>
+    where
+        's: 'a,
+    {
         self.children
             .iter()
             .map(|i| {

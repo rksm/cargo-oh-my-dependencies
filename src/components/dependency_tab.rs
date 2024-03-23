@@ -14,7 +14,6 @@ use crate::component::Component;
 use crate::{action::Action, metadata::workspace_info::WorkspaceInfo};
 
 use super::dependency_tree::DependencyTree;
-use crate::cargo;
 
 #[derive(Debug, Clone, Default)]
 enum View {

@@ -5,10 +5,10 @@ use ratatui::prelude::*;
 use std::collections::HashMap;
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
-use crate::metadata::dep_tree::{self, DepTreeNode};
+use crate::action::Action;
+use crate::component::Component;
+use crate::metadata::dep_tree::{self, DepTree, DepTreeNode};
 use crate::metadata::workspace_info::WorkspaceInfo;
-use crate::{action::Action, metadata::Features};
-use crate::{component::Component, metadata::PackageResolver};
 
 #[derive(Debug)]
 pub struct Icons {
@@ -129,9 +129,15 @@ impl DependencyTree {
     }
 
     pub fn update(&mut self, info: &WorkspaceInfo) {
-        let (items, indexed_items) = Self::tree_items(info);
+        let (items, indexed_items, tree) = Self::tree_items(info);
+        info!(
+            "updated dependency tree with {} items ({} root nodes)",
+            indexed_items.len(),
+            items.len()
+        );
         self.items = items;
         self.tree_index = indexed_items;
+        self.tree = tree;
     }
 
     pub fn location(&self) -> Option<Location> {
@@ -150,10 +156,10 @@ impl DependencyTree {
 
         match &selected[..] {
             [WorkspacePackage { id, .. }] => Some(Location::Package(id.clone())),
-            [WorkspacePackage { id, .. }, Dependency { name, kind, .. }] => {
+            [WorkspacePackage { id, .. }, Dependency { name, .. }] => {
                 Some(Location::Dependency((id.clone(), name.clone())))
             }
-            [WorkspacePackage { id, .. }, Dependency { name, kind, .. }, Feature {
+            [WorkspacePackage { id, .. }, Dependency { name, .. }, Feature {
                 name: feature_name, ..
             }] => Some(Location::Feature((
                 id.clone(),
@@ -166,7 +172,11 @@ impl DependencyTree {
 
     fn tree_items(
         workspace_info: &WorkspaceInfo,
-    ) -> (Vec<TreeItem<'static, String>>, HashMap<String, usize>) {
+    ) -> (
+        Vec<TreeItem<'static, String>>,
+        HashMap<String, usize>,
+        DepTree,
+    ) {
         let mut index = HashMap::new();
         let tree = workspace_info.tree();
         let items = tree.visit_post_order(&mut |node, i, children| {
@@ -183,14 +193,14 @@ impl DependencyTree {
                 }
 
                 (UnresolvedDependency { name, kind }, None) => {
-                    let key = node.widget_id();
+                    let key = format!("{i}:{}", node.widget_id());
                     index.insert(key.clone(), i);
                     let icon = &ICONS.unknown;
                     TreeItem::new_leaf(key, format!("{icon} {name} ({kind})"))
                 }
 
                 (Dependency { name, kind, .. }, Some(children)) => {
-                    let key = node.widget_id();
+                    let key = format!("{i}:{}", node.widget_id());
                     index.insert(key.clone(), i);
                     let span = Span::styled(format!("{name} ({kind})"), Style::default().white());
                     TreeItem::new(key, span, children).expect("tree failed")
@@ -221,7 +231,7 @@ impl DependencyTree {
                     }
 
                     let text = Text::from(Line::from(spans));
-                    let key = node.widget_id();
+                    let key = format!("{i}:{}", node.widget_id());
                     index.insert(key.clone(), i);
                     TreeItem::new_leaf(key, text)
                 }
@@ -230,7 +240,7 @@ impl DependencyTree {
             }
         });
 
-        (items, index)
+        (items, index, tree)
     }
 }
 
