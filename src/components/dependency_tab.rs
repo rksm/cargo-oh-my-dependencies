@@ -70,10 +70,17 @@ impl DependencyTab {
             Ok(Some(Action::ToggleFeature {
                 parent_package,
                 dep_name,
+                dep_kind,
                 feature_name,
+                feature_status,
             })) => {
-                self.workspace_info
-                    .toggle_feature(&parent_package, &dep_name, &feature_name)?;
+                self.workspace_info.toggle_feature(
+                    parent_package,
+                    dep_name,
+                    dep_kind,
+                    feature_name,
+                    feature_status,
+                )?;
                 self.refresh()
             }
             action => action,

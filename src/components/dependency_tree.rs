@@ -296,12 +296,16 @@ impl Component for DependencyTree {
                         }))
                     }
 
-                    [WorkspacePackage { id, .. }, Dependency { name, .. }, Feature {
-                        name: feature_name, ..
+                    [WorkspacePackage { id, .. }, Dependency { name, kind, .. }, Feature {
+                        name: feature_name,
+                        status,
+                        ..
                     }] => Ok(Some(Action::ToggleFeature {
                         parent_package: id.clone(),
                         dep_name: name.clone(),
+                        dep_kind: *kind,
                         feature_name: feature_name.clone(),
+                        feature_status: status.clone(),
                     })),
 
                     _ => todo!(),

@@ -1,5 +1,7 @@
-use cargo_metadata::PackageId;
+use cargo_metadata::{DependencyKind, PackageId};
 use eyre::Result;
+
+use crate::metadata::dep_tree::FeatureStatus;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -17,7 +19,9 @@ pub enum Action {
     ToggleFeature {
         parent_package: PackageId,
         dep_name: String,
+        dep_kind: DependencyKind,
         feature_name: String,
+        feature_status: FeatureStatus,
     },
 }
 
