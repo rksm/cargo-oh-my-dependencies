@@ -61,13 +61,9 @@ impl DependencyTab {
                 parent_package,
                 dep_name,
             })) => {
-                crate::mermaid::FeatureGraph::new(
-                    &self.workspace_info.metadata,
-                    &parent_package,
-                    &dep_name,
-                )
-                .build()
-                .render_and_open()?;
+                crate::mermaid::FeatureGraph::new(&self.workspace_info, &parent_package, &dep_name)
+                    .build()
+                    .render_and_open()?;
                 Action::none()
             }
 

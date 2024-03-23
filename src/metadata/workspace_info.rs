@@ -2,6 +2,7 @@ use eyre::Result;
 use std::{path::PathBuf, rc::Rc};
 
 use cargo_metadata::{Metadata, Package, PackageId};
+use cargo_toml::Manifest;
 
 use crate::cargo;
 
@@ -10,7 +11,8 @@ use super::{dep_tree::DepTree, PackageResolver};
 #[derive(Debug, Clone)]
 pub struct WorkspaceInfo {
     pub manifest_path: PathBuf,
-    pub metadata: Rc<Metadata>,
+    metadata: Rc<Metadata>,
+    pub manifest: Manifest,
 }
 
 impl WorkspaceInfo {
@@ -29,9 +31,12 @@ impl WorkspaceInfo {
                 .exec()?,
         );
 
+        let manifest = Manifest::from_path(&manifest_path)?;
+
         Ok(Self {
             manifest_path,
             metadata,
+            manifest,
         })
     }
 
@@ -41,6 +46,7 @@ impl WorkspaceInfo {
                 .manifest_path(&self.manifest_path)
                 .exec()?,
         );
+        self.manifest = Manifest::from_path(&self.manifest_path)?;
         Ok(())
     }
 
@@ -65,7 +71,7 @@ impl WorkspaceInfo {
         self.metadata.workspace_packages()
     }
 
-    pub fn package_resolver(&self) -> PackageResolver<'_> {
+    pub fn dependency_resolver(&self) -> PackageResolver<'_> {
         PackageResolver::new(&self.metadata)
     }
 

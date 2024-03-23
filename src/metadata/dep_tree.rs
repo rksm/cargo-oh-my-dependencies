@@ -146,7 +146,7 @@ impl DepTreeNode {
 
 impl DepTree {
     pub fn build(workspace_info: &WorkspaceInfo) -> Self {
-        let resolver = workspace_info.package_resolver();
+        let resolver = workspace_info.dependency_resolver();
         let mut items = Vec::new();
         let mut children = Vec::new();
 

@@ -2,32 +2,32 @@ use std::collections::HashMap;
 
 use cargo_metadata::PackageId;
 
-use crate::metadata::PackageResolver;
+use crate::metadata::workspace_info;
 
 use super::code_gen::{Edge, Graph, Node};
 
 #[derive(Debug)]
 pub struct FeatureGraph<'a> {
-    metadata: &'a cargo_metadata::Metadata,
+    info: &'a workspace_info::WorkspaceInfo,
     package_id: &'a PackageId,
     dep_name: &'a String,
 }
 
 impl<'a> FeatureGraph<'a> {
     pub fn new(
-        metadata: &'a cargo_metadata::Metadata,
+        info: &'a workspace_info::WorkspaceInfo,
         package_id: &'a PackageId,
         dep_name: &'a String,
     ) -> Self {
         Self {
-            metadata,
+            info,
             package_id,
             dep_name,
         }
     }
 
     pub fn build(&self) -> Graph {
-        let resolver = PackageResolver::new(self.metadata);
+        let resolver = self.info.dependency_resolver();
         let Some(dep_package) = resolver.resolve_dependency(self.package_id, self.dep_name) else {
             unimplemented!("Could not resolve package: {:?}", self.dep_name);
         };

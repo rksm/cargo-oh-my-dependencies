@@ -196,13 +196,21 @@ impl DependencyTree {
                     let key = format!("{i}:{}", node.widget_id());
                     index.insert(key.clone(), i);
                     let icon = &ICONS.unknown;
-                    TreeItem::new_leaf(key, format!("{icon} {name} ({kind})"))
+                    let label = match kind {
+                        cargo_metadata::DependencyKind::Normal => format!("{icon} {name}"),
+                        _ => format!("{icon} {name} ({kind})"),
+                    };
+                    TreeItem::new_leaf(key, label)
                 }
 
                 (Dependency { name, kind, .. }, Some(children)) => {
                     let key = format!("{i}:{}", node.widget_id());
                     index.insert(key.clone(), i);
-                    let span = Span::styled(format!("{name} ({kind})"), Style::default().white());
+                    let label = match kind {
+                        cargo_metadata::DependencyKind::Normal => name.clone(),
+                        _ => format!("{name} ({kind})"),
+                    };
+                    let span = Span::styled(label, Style::default().white());
                     TreeItem::new(key, span, children).expect("tree failed")
                 }
 
