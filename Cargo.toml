@@ -2,6 +2,18 @@
 name = "cargo-oh-my-dependencies"
 version = "0.1.0"
 edition = "2021"
+authors = ["Robert Krahn <robert@kra.hn>"]
+categories = ["development-tools", "development-tools::cargo-plugins", "command-line-utilities"]
+exclude = ["*.bak", "DEV.org", ".dir-locals.el", "notes.org", "scratch.py"]
+homepage = "https://github.com/rksm/cargo-oh-my-dependencies"
+keywords = ["cargo", "dependencies", "features", "cli"]
+license = "MIT"
+readme = "README.md"
+description = "A cargo plugin to browse and edit crate features across a workspace."
+
+[[bin]]
+name = "cargo-omd"
+path = "src/main.rs"
 
 [dependencies]
 ansi-to-tui = "4.0.1"
@@ -25,3 +37,6 @@ tracing = "0.1.40"
 tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tui-tree-widget = "0.19.0"
+
+[dev-dependencies]
+insta = { version = "1.36.1", features = ["toml"] }

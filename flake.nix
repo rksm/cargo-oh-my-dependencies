@@ -26,6 +26,7 @@
             rust-analyzer
             rustfmt
             python3
+            cargo-insta
           ];
 
           RUST_BACKTRACE = "1";

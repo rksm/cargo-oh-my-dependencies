@@ -196,7 +196,7 @@ impl<'a> EditDependency<'a> {
 
         println!("{}", std::fs::read_to_string(&manifest_path)?);
 
-        let doc: toml_edit::DocumentMut = std::fs::read_to_string(&manifest_path)?.parse()?;
+        let _doc: toml_edit::DocumentMut = std::fs::read_to_string(&manifest_path)?.parse()?;
 
         if let Err(err) = dir.close() {
             error!("failed to cleanup temp dir: {err}");
