@@ -6,6 +6,10 @@ This is still work in progress.
 
 ![screenshot](docs/screenshot.png)
 
+## Installation
+
+`cargo install cargo-oh-my-dependencies`
+
 ## Usage
 
 Run `cargo omd` to start the CLI.

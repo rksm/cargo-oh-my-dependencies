@@ -173,7 +173,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-oh-my-dependencies"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ansi-to-tui",
  "cargo_metadata",
