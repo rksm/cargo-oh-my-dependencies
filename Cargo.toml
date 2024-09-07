@@ -20,6 +20,7 @@ ansi-to-tui = "4.0.1"
 cargo_metadata = "0.18.1"
 cargo_toml = { version = "0.19.2", features = ["features"] }
 clap = { version = "4.5.3", features = ["derive"] }
+clap-cargo = "0.14.1"
 color-eyre = "0.6.3"
 crossterm = "0.27.0"
 directories = "5.0.1"

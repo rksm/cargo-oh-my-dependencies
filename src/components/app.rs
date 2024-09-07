@@ -6,8 +6,8 @@ use ratatui::{
     widgets::{block::Title, Block, BorderType, Borders, Paragraph},
 };
 
-use crate::component::Component;
 use crate::{action::Action, Args};
+use crate::{args::Opt, component::Component};
 
 use super::dependency_tab::DependencyTab;
 
@@ -19,9 +19,9 @@ pub struct App {
 
 impl App {
     pub fn new(args: Args) -> Result<Self> {
-        let config_toml = args.config_toml.unwrap_or_else(|| "Cargo.toml".into());
+        let Args::Omd(Opt { manifest }) = args;
         Ok(Self {
-            tab: DependencyTab::new(config_toml)?,
+            tab: DependencyTab::new(manifest)?,
             error: None,
         })
     }
